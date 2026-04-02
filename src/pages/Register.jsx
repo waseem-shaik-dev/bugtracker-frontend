@@ -2,7 +2,7 @@ import { useState } from "react";
 import { Link, useNavigate } from "react-router-dom";
 import api from "../api/axiosConfig";
 import ThemeToggle from "../components/shared/ThemeToggle";
-import { ArrowLeft, Bug } from "lucide-react";
+import { ArrowLeft, Bug, Eye, EyeOff } from "lucide-react";
 
 
 export default function Register() {
@@ -15,6 +15,7 @@ export default function Register() {
   });
   const [error, setError] = useState("");
   const [loading, setLoading] = useState(false);
+  const [showPassword, setShowPassword] = useState(false);
 
   const handleChange = (e) =>
     setForm({ ...form, [e.target.name]: e.target.value });
@@ -72,14 +73,23 @@ export default function Register() {
             className="input"
             required
           />
-          <input
-            name="password"
-            type="password"
-            placeholder="Password"
-            onChange={handleChange}
-            className="input"
-            required
-          />
+          <div className="relative">
+            <input
+              name="password"
+              type={showPassword ? "text" : "password"}
+              placeholder="Password"
+              onChange={handleChange}
+              className="input pr-10"
+              required
+            />
+            <button
+              type="button"
+              onClick={() => setShowPassword(!showPassword)}
+              className="absolute right-3 top-1/2 -translate-y-1/2 text-zinc-400 hover:text-zinc-600 dark:hover:text-zinc-300"
+            >
+              {showPassword ? <EyeOff size={18} /> : <Eye size={18} />}
+            </button>
+          </div>
           {error && <div className="text-brand-600 dark:text-brand-400 text-sm font-medium">{error}</div>}
 
           <button className="btn-primary w-full mt-2" disabled={loading}>

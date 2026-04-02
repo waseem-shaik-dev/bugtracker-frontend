@@ -1,5 +1,5 @@
 import { useState, useEffect, useMemo } from "react";
-import { Plus, Pencil, Trash2, FolderPlus, FolderMinus, Search, X, Check, Lock, AlertTriangle } from "lucide-react";
+import { Plus, Pencil, Trash2, FolderPlus, FolderMinus, Search, X, Check, Lock, AlertTriangle, Eye, EyeOff } from "lucide-react";
 import toast from "react-hot-toast";
 import ConfirmModal from "../../components/admin/shared/ConfirmModal";
 import {
@@ -186,6 +186,7 @@ function UserFormModal({ isOpen, onClose, editUser, onSaved }) {
   const [form, setForm] = useState(EMPTY_FORM);
   const [specialKey, setSpecialKey] = useState("");
   const [loading, setLoading] = useState(false);
+  const [showPassword, setShowPassword] = useState(false);
 
   const userIsSuperAdmin = editUser && isSuperAdmin(editUser.email);
   const currentIsSuperAdmin = isCurrentUserSuperAdmin();
@@ -232,13 +233,24 @@ function UserFormModal({ isOpen, onClose, editUser, onSaved }) {
   const field = (label, key, type = "text", placeholder = "") => (
     <div>
       <label className="block text-xs font-semibold text-slate-500 dark:text-slate-400 uppercase tracking-wider mb-1.5">{label}</label>
+      <div className="relative">
       <input
-        type={type}
+        type={key === "password" ? (showPassword ? "text" : "password") : type}
         value={form[key]}
         onChange={(e) => setForm({ ...form, [key]: e.target.value })}
         placeholder={placeholder}
-        className="w-full px-3.5 py-2.5 bg-slate-50 dark:bg-slate-800 border border-slate-200 dark:border-slate-700 rounded-xl text-sm text-slate-900 dark:text-slate-100 placeholder-slate-400 focus:outline-none focus:ring-2 focus:ring-blue-500/30 focus:border-blue-400 transition"
+        className={`w-full px-3.5 py-2.5 bg-slate-50 dark:bg-slate-800 border border-slate-200 dark:border-slate-700 rounded-xl text-sm text-slate-900 dark:text-slate-100 placeholder-slate-400 focus:outline-none focus:ring-2 focus:ring-blue-500/30 focus:border-blue-400 transition ${key === "password" ? "pr-10" : ""}`}
       />
+      {key === "password" && (
+        <button
+          type="button"
+          onClick={() => setShowPassword(!showPassword)}
+          className="absolute right-3 top-1/2 -translate-y-1/2 text-slate-400 hover:text-slate-600 dark:hover:text-slate-300"
+        >
+          {showPassword ? <EyeOff size={18} /> : <Eye size={18} />}
+        </button>
+      )}
+      </div>
     </div>
   );
 

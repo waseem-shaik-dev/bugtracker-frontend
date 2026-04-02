@@ -2,7 +2,7 @@ import { useState, useEffect } from "react";
 import { useLocation, useNavigate } from "react-router-dom";
 import api from "../api/axiosConfig";
 import ThemeToggle from "../components/shared/ThemeToggle";
-import { ArrowLeft, CheckCircle2 } from "lucide-react";
+import { ArrowLeft, CheckCircle2, Eye, EyeOff } from "lucide-react";
 
 export default function OtpVerificationPage() {
   const navigate = useNavigate();
@@ -14,6 +14,9 @@ export default function OtpVerificationPage() {
   const [success, setSuccess] = useState("");
   const [loading, setLoading] = useState(false);
   const [timer, setTimer] = useState(90);
+  const [showOtp, setShowOtp] = useState(false);
+
+
 
   const formatTime = (seconds) => {
     const m = Math.floor(seconds / 60);
@@ -82,14 +85,24 @@ export default function OtpVerificationPage() {
           </p>
 
           <form onSubmit={verifyOtp} className="space-y-4">
-          <input
-            value={otp}
-            onChange={(e) => setOtp(e.target.value)}
-            placeholder="Enter 6-digit OTP"
-            className="input text-center tracking-widest"
-            maxLength={6}
-            required
-          />
+          <div className="relative">
+            <input
+              value={otp}
+              type={showOtp ? "text" : "password"}
+              onChange={(e) => setOtp(e.target.value)}
+              placeholder="Enter 6-digit OTP"
+              className="input pr-10 text-center tracking-widest"
+              maxLength={6}
+              required
+            />
+            <button
+              type="button"
+              onClick={() => setShowOtp(!showOtp)}
+              className="absolute right-3 top-1/2 -translate-y-1/2 text-zinc-400 hover:text-zinc-600 dark:hover:text-zinc-300"
+            >
+              {showOtp ? <EyeOff size={18} /> : <Eye size={18} />}
+            </button>
+          </div>
 
             {error && <div className="text-brand-600 dark:text-brand-400 text-sm font-medium">{error}</div>}
 
