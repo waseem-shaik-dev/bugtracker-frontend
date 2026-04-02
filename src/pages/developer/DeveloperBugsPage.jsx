@@ -1,5 +1,5 @@
 import { useState, useEffect, useMemo } from "react";
-import { Search, ArrowUpDown, Loader2, Copy } from "lucide-react";
+import { Search, ArrowUpDown, Loader2, Copy,Bug } from "lucide-react";
 import toast from "react-hot-toast";
 import { getDetailedBugsByDeveloper, updateBugStatus } from "../../services/bugService";
 import HoverPopover from "../../components/admin/shared/HoverPopover";
