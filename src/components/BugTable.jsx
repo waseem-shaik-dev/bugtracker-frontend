@@ -101,25 +101,31 @@ export default function BugTable({
     }
     if (buttonElement) {
       const rect = buttonElement.getBoundingClientRect();
+      // Use fixed positioning (viewport-relative) since portal mounts to body
       setDropdownPosition({
-        top: rect.bottom + window.scrollY,
-        left: rect.left + window.scrollX,
+        top: rect.bottom + 4,
+        left: rect.left,
       });
     }
     setOpenAssignDropdown(bug.id);
 
-    const projectId = bug.project?.id || bug.projectId;
-    if (projectId && !projectDevsMap[projectId]) {
-      setLoadingDevs((prev) => ({ ...prev, [bug.id]: true }));
-      try {
-        const res = await api.get(`/users/project/${projectId}`);
-        const devList = Array.isArray(res.data) ? res.data : [];
-        setProjectDevsMap((prev) => ({ ...prev, [projectId]: devList }));
-      } catch (err) {
-        console.error("Failed to fetch developers for project", projectId, err);
-      } finally {
-        setLoadingDevs((prev) => ({ ...prev, [bug.id]: false }));
-      }
+    const projectId = bug.project?.id ?? bug.projectId ?? null;
+    if (!projectId) {
+      console.warn("Bug has no projectId, cannot fetch developers", bug);
+      return;
+    }
+
+    // Always re-fetch so fresh data is shown (avoids stale/empty cache)
+    setLoadingDevs((prev) => ({ ...prev, [bug.id]: true }));
+    try {
+      const res = await api.get(`/users/project/${projectId}`);
+      const devList = Array.isArray(res.data) ? res.data : [];
+      setProjectDevsMap((prev) => ({ ...prev, [projectId]: devList }));
+    } catch (err) {
+      console.error("Failed to fetch developers for project", projectId, err);
+      setProjectDevsMap((prev) => ({ ...prev, [projectId]: [] }));
+    } finally {
+      setLoadingDevs((prev) => ({ ...prev, [bug.id]: false }));
     }
   };
 
@@ -314,43 +320,51 @@ export default function BugTable({
         </tbody>
       </table>
 
-      {/* Portal for Assign Developer dropdown */}
+      {/* Portal for Assign Developer dropdown — fixed so it stays in viewport */}
       {openAssignDropdown &&
         createPortal(
           <div
-            className="card shadow-xl z-50 max-h-60 overflow-y-auto animate-fade-up assign-dropdown-container"
+            className="card shadow-xl z-[9999] max-h-60 overflow-y-auto assign-dropdown-container"
             style={{
-              position: "absolute",
+              position: "fixed",
               top: dropdownPosition.top,
               left: dropdownPosition.left,
-              width: 200,
+              width: 220,
+              border: "1px solid rgba(100,116,139,0.2)",
             }}
           >
             {loadingDevs[openAssignDropdown] ? (
-              <div className="px-3 py-3 text-xs text-zinc-400 text-center">
+              <div className="px-3 py-4 text-xs text-zinc-400 text-center flex items-center justify-center gap-2">
+                <span className="inline-block w-3 h-3 rounded-full border-2 border-blue-400 border-t-transparent animate-spin" />
                 Loading developers…
               </div>
             ) : devList.length === 0 ? (
-              <div className="px-3 py-3 text-xs text-zinc-400 text-center">
-                No developers found
+              <div className="px-3 py-4 text-xs text-zinc-400 text-center">
+                No developers in this project
               </div>
             ) : (
-              devList.map((dev) => (
-                <button
-                  key={dev.id}
-                  onClick={() => handleAssignDeveloper(currentOpenBug, dev)}
-                  className="w-full text-left px-3 py-2 text-xs font-medium hover:bg-zinc-100 dark:hover:bg-zinc-800 transition-colors flex flex-col"
-                >
-                  <span className="text-zinc-800 dark:text-zinc-200 font-semibold">
-                    {dev.name}
-                  </span>
-                  {dev.email && (
-                    <span className="text-[10px] text-zinc-400 truncate">
-                      {dev.email}
+              <div className="py-1">
+                <p className="px-3 pt-1 pb-2 text-[10px] font-semibold uppercase tracking-wider text-zinc-400 border-b border-zinc-100 dark:border-zinc-800">
+                  Assign Developer
+                </p>
+                {devList.map((dev) => (
+                  <button
+                    key={dev.id}
+                    onClick={() => handleAssignDeveloper(currentOpenBug, dev)}
+                    className="w-full text-left px-3 py-2.5 text-xs font-medium hover:bg-zinc-100 dark:hover:bg-zinc-800 transition-colors flex items-center gap-2.5"
+                  >
+                    <span className="w-6 h-6 rounded-full bg-blue-100 dark:bg-blue-900/40 text-blue-600 dark:text-blue-400 flex items-center justify-center text-[10px] font-bold flex-shrink-0">
+                      {(dev.name || "?").charAt(0).toUpperCase()}
                     </span>
-                  )}
-                </button>
-              ))
+                    <span className="flex flex-col min-w-0">
+                      <span className="text-zinc-800 dark:text-zinc-200 font-semibold truncate">{dev.name}</span>
+                      {dev.email && (
+                        <span className="text-[10px] text-zinc-400 truncate">{dev.email}</span>
+                      )}
+                    </span>
+                  </button>
+                ))}
+              </div>
             )}
           </div>,
           document.body,
