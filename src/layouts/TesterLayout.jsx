@@ -1,8 +1,11 @@
+import { useState } from "react";
 import { NavLink, Outlet, useNavigate } from "react-router-dom";
-import { LayoutDashboard, Bug, LogOut, ChevronRight } from "lucide-react";
+import { LayoutDashboard, Bug, LogOut, ChevronRight, Menu, X } from "lucide-react";
 import { Toaster } from "react-hot-toast";
 import ThemeToggle from "../components/shared/ThemeToggle";
 import { useTheme } from "../context/ThemeContext";
+import DemoBanner from "../components/shared/DemoBanner";
+import { isDemoMode } from "../utils/demoMode";
 
 const NAV = [
   { to: "/tester",      icon: LayoutDashboard, label: "Dashboard", end: true },
@@ -11,6 +14,7 @@ const NAV = [
 
 export default function TesterLayout() {
   const navigate = useNavigate();
+  const [isMobileOpen, setIsMobileOpen] = useState(false);
   const user = JSON.parse(localStorage.getItem("user") || "{}");
 
   const handleLogout = () => {
@@ -18,84 +22,128 @@ export default function TesterLayout() {
     navigate("/");
   };
 
-  return (
-    <div className="flex h-screen bg-slate-50 dark:bg-slate-950 overflow-hidden text-[13px] transition-colors duration-300">
-      {/* ── Sidebar ── */}
-      <aside className="w-60 flex-shrink-0 flex flex-col bg-white dark:bg-slate-950 border-r border-slate-200 dark:border-slate-800 transition-colors duration-300">
-        {/* Logo */}
-        <div className="h-16 px-6 flex items-center gap-3 border-b border-slate-200 dark:border-slate-800">
+  const renderSidebarContent = () => (
+    <>
+      {/* Logo */}
+      <div className="h-16 px-6 flex items-center justify-between border-b border-slate-200 dark:border-slate-800">
+        <div className="flex items-center gap-3">
           <div className="w-8 h-8 rounded-lg bg-blue-600 flex items-center justify-center shadow-lg shadow-blue-600/30">
             <Bug size={16} className="text-white" />
           </div>
           <span className="font-display font-bold text-slate-900 dark:text-white text-base tracking-tight">BugTracker</span>
         </div>
+        {isDemoMode() && (
+          <span className="px-2 py-0.5 text-[10px] font-bold uppercase tracking-wider rounded-md bg-amber-500/10 text-amber-600 dark:text-amber-400 border border-amber-500/20">
+            Demo
+          </span>
+        )}
+        <button
+          onClick={() => setIsMobileOpen(false)}
+          className="md:hidden p-1 rounded-lg text-slate-400 hover:text-slate-600 dark:hover:text-slate-200"
+        >
+          <X size={18} />
+        </button>
+      </div>
 
-        {/* Nav */}
-        <nav className="flex-1 px-3 py-4 space-y-1 overflow-y-auto">
-          {NAV.map(({ to, icon: Icon, label, end }) => (
-            <NavLink
-              key={to}
-              to={to}
-              end={end}
-              className={({ isActive }) =>
-                `group flex items-center gap-3 px-3 py-2.5 rounded-xl font-medium transition-all duration-150 ${
-                  isActive
-                    ? "bg-blue-600 text-white shadow-md shadow-blue-600/25"
-                    : "text-slate-500 dark:text-slate-400 hover:text-slate-900 dark:hover:text-white hover:bg-slate-100 dark:hover:bg-slate-800/50"
-                }`
-              }
-            >
-              {({ isActive }) => (
-                <>
-                  <Icon size={18} className={isActive ? "text-white" : "text-slate-500 group-hover:text-slate-300"} />
-                  <span className="flex-1">{label}</span>
-                  {isActive && <ChevronRight size={14} className="text-blue-300" />}
-                </>
-              )}
-            </NavLink>
-          ))}
-        </nav>
-
-        {/* User profile + logout */}
-        <div className="px-3 py-4 border-t border-slate-200 dark:border-slate-800">
-          <div className="flex items-center gap-3 px-3 py-2.5 rounded-xl bg-slate-50 dark:bg-slate-900 mb-2 border border-slate-100 dark:border-slate-800">
-            <div className="w-8 h-8 rounded-full bg-blue-500 flex items-center justify-center text-white text-xs font-bold flex-shrink-0">
-              {(user.name || user.email || "T").charAt(0).toUpperCase()}
-            </div>
-            <div className="min-w-0">
-              <p className="text-xs font-semibold text-slate-800 dark:text-slate-200 truncate">{user.name || "Tester"}</p>
-              <p className="text-[11px] text-slate-500 truncate">{user.role || "TESTER"}</p>
-            </div>
-          </div>
-          <button
-            onClick={handleLogout}
-            className="w-full flex items-center gap-3 px-3 py-2.5 rounded-xl font-medium text-slate-500 dark:text-slate-400 hover:text-red-600 hover:bg-red-50 dark:hover:bg-red-900/10 transition-all duration-150"
+      {/* Nav */}
+      <nav className="flex-1 px-3 py-4 space-y-1 overflow-y-auto">
+        {NAV.map(({ to, icon: Icon, label, end }) => (
+          <NavLink
+            key={to}
+            to={to}
+            end={end}
+            onClick={() => setIsMobileOpen(false)}
+            className={({ isActive }) =>
+              `group flex items-center gap-3 px-3 py-2.5 rounded-xl text-sm font-medium transition-all duration-150 ${
+                isActive
+                  ? "bg-blue-600 text-white shadow-md shadow-blue-600/25"
+                  : "text-slate-500 dark:text-slate-400 hover:text-slate-900 dark:hover:text-white hover:bg-slate-100 dark:hover:bg-slate-800/50"
+              }`
+            }
           >
-            <LogOut size={16} />
-            <span>Logout</span>
-          </button>
-        </div>
-      </aside>
+            {({ isActive }) => (
+              <>
+                <Icon size={18} className={isActive ? "text-white" : "text-slate-500 group-hover:text-slate-300"} />
+                <span className="flex-1">{label}</span>
+                {isActive && <ChevronRight size={14} className="text-blue-300" />}
+              </>
+            )}
+          </NavLink>
+        ))}
+      </nav>
 
-      {/* ── Main content ── */}
-      <div className="flex-1 flex flex-col overflow-hidden">
-        {/* Top bar */}
-        <header className="h-16 flex items-center px-8 bg-white dark:bg-slate-900 border-b border-slate-200 dark:border-slate-800 flex-shrink-0">
-          <h1 className="font-display font-semibold text-slate-800 dark:text-slate-200 text-base">
-            Tester Workspace
-          </h1>
-          <div className="ml-auto flex items-center gap-4">
-            <ThemeToggle />
-            <span className="text-xs font-semibold px-2.5 py-1 rounded-full bg-emerald-100 text-emerald-700 dark:bg-emerald-900/40 dark:text-emerald-300">
-              TESTER
-            </span>
+      {/* User profile + logout */}
+      <div className="px-3 py-4 border-t border-slate-200 dark:border-slate-800">
+        <div className="flex items-center gap-3 px-3 py-2.5 rounded-xl bg-slate-50 dark:bg-slate-900 mb-2 border border-slate-100 dark:border-slate-800">
+          <div className="w-8 h-8 rounded-full bg-blue-500 flex items-center justify-center text-white text-xs font-bold flex-shrink-0">
+            {(user.name || user.email || "T").charAt(0).toUpperCase()}
           </div>
-        </header>
+          <div className="min-w-0">
+            <p className="text-xs font-semibold text-slate-800 dark:text-slate-200 truncate">{user.name || "Tester"}</p>
+            <p className="text-[11px] text-slate-500 truncate">{user.role || "TESTER"}</p>
+          </div>
+        </div>
+        <button
+          onClick={handleLogout}
+          className="w-full flex items-center gap-3 px-3 py-2.5 rounded-xl text-sm font-medium text-slate-500 dark:text-slate-400 hover:text-red-600 hover:bg-red-50 dark:hover:bg-red-900/10 transition-all duration-150"
+        >
+          <LogOut size={16} />
+          <span>Logout</span>
+        </button>
+      </div>
+    </>
+  );
 
-        {/* Scrollable page content */}
-        <main className="flex-1 overflow-y-auto">
-          <Outlet />
-        </main>
+  return (
+    <div className="flex flex-col h-screen bg-slate-50 dark:bg-slate-950 overflow-hidden transition-colors duration-300">
+      <DemoBanner />
+      <div className="flex flex-1 overflow-hidden">
+        {/* ── Desktop Sidebar ── */}
+        <aside className="hidden md:flex w-60 flex-shrink-0 flex-col bg-white dark:bg-slate-950 border-r border-slate-200 dark:border-slate-800 transition-colors duration-300">
+          {renderSidebarContent()}
+        </aside>
+
+        {/* ── Mobile Sidebar Drawer ── */}
+        {isMobileOpen && (
+          <div className="fixed inset-0 z-50 flex md:hidden">
+            <div
+              className="fixed inset-0 bg-slate-900/60 backdrop-blur-xs transition-opacity"
+              onClick={() => setIsMobileOpen(false)}
+            />
+            <aside className="relative w-64 max-w-[80vw] flex flex-col bg-white dark:bg-slate-950 border-r border-slate-200 dark:border-slate-800 shadow-2xl z-10">
+              {renderSidebarContent()}
+            </aside>
+          </div>
+        )}
+
+        {/* ── Main content ── */}
+        <div className="flex-1 flex flex-col overflow-hidden w-full">
+          {/* Top bar */}
+          <header className="h-16 flex items-center px-4 sm:px-8 bg-white dark:bg-slate-900 border-b border-slate-200 dark:border-slate-800 flex-shrink-0">
+            <button
+              onClick={() => setIsMobileOpen(true)}
+              className="md:hidden p-2 -ml-2 mr-2 rounded-xl text-slate-600 dark:text-slate-300 hover:bg-slate-100 dark:hover:bg-slate-800 transition-colors"
+              aria-label="Open menu"
+            >
+              <Menu size={20} />
+            </button>
+
+            <h1 className="font-display font-semibold text-slate-800 dark:text-slate-200 text-base truncate">
+              Tester Workspace
+            </h1>
+            <div className="ml-auto flex items-center gap-3 sm:gap-4">
+              <ThemeToggle />
+              <span className="text-xs font-semibold px-2.5 py-1 rounded-full bg-emerald-100 text-emerald-700 dark:bg-emerald-900/40 dark:text-emerald-300">
+                TESTER
+              </span>
+            </div>
+          </header>
+
+          {/* Scrollable page content */}
+          <main className="flex-1 overflow-y-auto w-full">
+            <Outlet />
+          </main>
+        </div>
       </div>
 
       {/* Toast notifications */}
@@ -116,3 +164,5 @@ export default function TesterLayout() {
     </div>
   );
 }
+
+

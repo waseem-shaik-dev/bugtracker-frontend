@@ -49,12 +49,12 @@ export default function BugList() {
   return (
     <div className="min-h-screen bg-surface-light dark:bg-surface-dark">
       <Navbar />
-      <main className="max-w-7xl mx-auto px-4 sm:px-6 py-8">
+      <main className="max-w-7xl mx-auto px-4 sm:px-6 py-6 sm:py-8">
         <div className="mb-6 animate-fade-up">
-          <h1 className="font-display font-bold text-3xl text-zinc-900 dark:text-zinc-100">
+          <h1 className="font-display font-bold text-2xl sm:text-3xl text-zinc-900 dark:text-zinc-100">
             Bug Tracker
           </h1>
-          <p className="text-zinc-500 dark:text-zinc-400 mt-1">
+          <p className="text-sm sm:text-base text-zinc-500 dark:text-zinc-400 mt-1">
             All bugs across your projects
           </p>
         </div>

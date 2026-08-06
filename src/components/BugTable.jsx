@@ -1,7 +1,7 @@
 // =============================
 // FILE: src/components/BugTable.jsx
 // =============================
-import { useState, useRef, useEffect } from "react";
+import { useState, useEffect } from "react";
 import { createPortal } from "react-dom";
 import api from "../api/axiosConfig";
 
@@ -62,7 +62,24 @@ export default function BugTable({
   const [openStatusDropdown, setOpenStatusDropdown] = useState(null);
   const [openAssignDropdown, setOpenAssignDropdown] = useState(null);
   const [dropdownPosition, setDropdownPosition] = useState({ top: 0, left: 0 });
-  const assignButtonRef = useRef(null);
+  const [projectDevsMap, setProjectDevsMap] = useState({});
+  const [loadingDevs, setLoadingDevs] = useState({});
+
+  const userRole = typeof window !== "undefined" ? localStorage.getItem("role") : null;
+  const isUserAdmin = isAdmin || userRole === "ADMIN";
+
+  useEffect(() => {
+    const handleClickOutside = (e) => {
+      if (!e.target.closest(".assign-dropdown-container") && !e.target.closest(".assign-dropdown-btn")) {
+        setOpenAssignDropdown(null);
+      }
+      if (!e.target.closest(".status-dropdown-container") && !e.target.closest(".status-dropdown-btn")) {
+        setOpenStatusDropdown(null);
+      }
+    };
+    document.addEventListener("mousedown", handleClickOutside);
+    return () => document.removeEventListener("mousedown", handleClickOutside);
+  }, []);
 
   const handleStatusChange = async (bugId, newStatus) => {
     setUpdating(bugId);
@@ -77,28 +94,80 @@ export default function BugTable({
     }
   };
 
-  const handleAssignDeveloper = async (bugId, developerId) => {
-    setUpdating(bugId);
+  const handleOpenAssignPortal = async (bug, buttonElement) => {
+    if (openAssignDropdown === bug.id) {
+      setOpenAssignDropdown(null);
+      return;
+    }
+    if (buttonElement) {
+      const rect = buttonElement.getBoundingClientRect();
+      setDropdownPosition({
+        top: rect.bottom + window.scrollY,
+        left: rect.left + window.scrollX,
+      });
+    }
+    setOpenAssignDropdown(bug.id);
+
+    const projectId = bug.project?.id || bug.projectId;
+    if (projectId && !projectDevsMap[projectId]) {
+      setLoadingDevs((prev) => ({ ...prev, [bug.id]: true }));
+      try {
+        const res = await api.get(`/users/project/${projectId}`);
+        const devList = Array.isArray(res.data) ? res.data : [];
+        setProjectDevsMap((prev) => ({ ...prev, [projectId]: devList }));
+      } catch (err) {
+        console.error("Failed to fetch developers for project", projectId, err);
+      } finally {
+        setLoadingDevs((prev) => ({ ...prev, [bug.id]: false }));
+      }
+    }
+  };
+
+  const handleAssignDeveloper = async (bug, dev) => {
+    setUpdating(bug.id);
     try {
-      await api.post(`/bugs/assign`, { bugId, developerId });
-      onAssignDeveloper && onAssignDeveloper(bugId, developerId);
+      await api.post(`/bugs/assign`, { bugId: bug.id, developerId: dev.id });
+      bug.assignedTo = dev;
+      bug.assignedToName = dev.name;
+      onAssignDeveloper && onAssignDeveloper(bug.id, dev.id || dev);
     } catch (err) {
-      alert("Failed to assign developer");
+      try {
+        await api.put(`/bugs/${bug.id}/reassign/${dev.id}`);
+        bug.assignedTo = dev;
+        bug.assignedToName = dev.name;
+        onAssignDeveloper && onAssignDeveloper(bug.id, dev.id || dev);
+      } catch (e) {
+        alert("Failed to assign developer");
+      }
     } finally {
       setUpdating(null);
       setOpenAssignDropdown(null);
     }
   };
 
-  // Compute dropdown position relative to viewport
-  const openAssignPortal = (bugId, buttonRef) => {
-    if (!buttonRef.current) return;
-    const rect = buttonRef.current.getBoundingClientRect();
-    setDropdownPosition({
-      top: rect.bottom + window.scrollY,
-      left: rect.left + window.scrollX,
-    });
-    setOpenAssignDropdown(bugId);
+  const handleUnassignDeveloper = async (bug) => {
+    const isAssigned = Boolean(bug.assignedTo || bug.assignedToName || bug.assignedToId);
+    if (!isAssigned) return;
+
+    setUpdating(bug.id);
+    try {
+      await api.put(`/bugs/${bug.id}/unassign`);
+      bug.assignedTo = null;
+      bug.assignedToName = null;
+      onAssignDeveloper && onAssignDeveloper(bug.id, null);
+    } catch (err) {
+      try {
+        await api.post(`/bugs/unassign`, { bugId: bug.id });
+        bug.assignedTo = null;
+        bug.assignedToName = null;
+        onAssignDeveloper && onAssignDeveloper(bug.id, null);
+      } catch (e) {
+        alert("Failed to unassign developer");
+      }
+    } finally {
+      setUpdating(null);
+      setOpenAssignDropdown(null);
+    }
   };
 
   if (!bugs || bugs.length === 0) {
@@ -120,7 +189,11 @@ export default function BugTable({
     "Created",
   ];
   if (showActions) headers.push("Action");
-  if (isAdmin) headers.push("Assign Developer");
+  if (isUserAdmin) headers.push("Assign Developer");
+
+  const currentOpenBug = bugs.find((b) => b.id === openAssignDropdown);
+  const currentProjectId = currentOpenBug?.project?.id || currentOpenBug?.projectId;
+  const devList = (currentProjectId && projectDevsMap[currentProjectId]) || projectDevelopers[openAssignDropdown] || projectDevelopers[currentProjectId] || [];
 
   return (
     <div className="overflow-x-auto relative">
@@ -128,104 +201,116 @@ export default function BugTable({
         <thead>
           <tr className="border-b border-zinc-200 dark:border-zinc-800 text-center">
             {headers.map((h) => (
-              <th key={h} className="px-2 py-4 text-center align-bottom">
-                <div className="writing-mode-vertical text-xs font-semibold text-zinc-500 dark:text-zinc-400">
-                  {h}
-                </div>
+              <th key={h} className="px-3 py-3 text-center text-xs font-semibold uppercase tracking-wider text-zinc-500 dark:text-zinc-400 whitespace-nowrap">
+                {h}
               </th>
             ))}
           </tr>
         </thead>
 
         <tbody>
-          {bugs.map((bug, i) => (
-            <tr
-              key={bug.id}
-              className={`border-b border-zinc-100 dark:border-zinc-800/60 hover:bg-zinc-50 dark:hover:bg-zinc-800/40 transition-colors animate-fade-up opacity-0`}
-              style={{
-                animationDelay: `${i * 0.04}s`,
-                animationFillMode: "forwards",
-              }}
-            >
-              <td className="px-4 py-3 font-mono text-xs text-zinc-400 dark:text-zinc-500">
-                #{bug.id}
-              </td>
-              <td className="px-4 py-3 font-medium text-zinc-800 dark:text-zinc-200 max-w-xs truncate">
-                {bug.title}
-              </td>
-              <td className="px-4 py-3">
-                <PriorityTag priority={bug.priority} />
-              </td>
-              <td className="px-4 py-3">
-                <StatusBadge status={bug.status} />
-              </td>
-              <td className="px-4 py-3 text-zinc-500 dark:text-zinc-400 text-xs">
-                {bug.assignedToName || "—"}
-              </td>
-              <td className="px-4 py-3 text-zinc-400 dark:text-zinc-500 text-xs font-mono whitespace-nowrap">
-                {bug.createdAt
-                  ? new Date(bug.createdAt).toLocaleDateString()
-                  : "—"}
-              </td>
+          {bugs.map((bug, i) => {
+            const assignedName = bug.assignedTo?.name || bug.assignedToName;
+            const isAssigned = Boolean(bug.assignedTo || bug.assignedToName || bug.assignedToId);
 
-              {/* Status Update */}
-              {showActions && (
+            return (
+              <tr
+                key={bug.id}
+                className={`border-b border-zinc-100 dark:border-zinc-800/60 hover:bg-zinc-50 dark:hover:bg-zinc-800/40 transition-colors animate-fade-up opacity-0`}
+                style={{
+                  animationDelay: `${i * 0.04}s`,
+                  animationFillMode: "forwards",
+                }}
+              >
+                <td className="px-4 py-3 font-mono text-xs text-zinc-400 dark:text-zinc-500">
+                  #{bug.id}
+                </td>
+                <td className="px-4 py-3 font-medium text-zinc-800 dark:text-zinc-200 max-w-xs truncate">
+                  {bug.title}
+                </td>
                 <td className="px-4 py-3">
-                  <div className="relative">
-                    <button
-                      onClick={() =>
-                        setOpenStatusDropdown(
-                          openStatusDropdown === bug.id ? null : bug.id,
-                        )
-                      }
-                      disabled={updating === bug.id}
-                      className="btn-secondary text-xs py-1.5 px-3"
-                    >
-                      {updating === bug.id ? "…" : "Update Status ↓"}
-                    </button>
-
-                    {openStatusDropdown === bug.id && (
-                      <div className="absolute right-0 top-full mt-1 w-40 card shadow-xl z-50 overflow-hidden animate-fade-up">
-                        {STATUS_OPTIONS.map((s) => (
-                          <button
-                            key={s}
-                            onClick={() => handleStatusChange(bug.id, s)}
-                            className={`w-full text-left px-3 py-2 text-xs font-medium hover:bg-zinc-100 dark:hover:bg-zinc-800 transition-colors ${
-                              bug.status === s
-                                ? "text-brand-500"
-                                : "text-zinc-700 dark:text-zinc-300"
-                            }`}
-                          >
-                            {s.replace("_", " ")}
-                            {bug.status === s && " ✓"}
-                          </button>
-                        ))}
-                      </div>
-                    )}
-                  </div>
+                  <PriorityTag priority={bug.priority} />
                 </td>
-              )}
-
-              {/* Assign Developer */}
-              {isAdmin && (
-                <td className="px-4 py-3 text-center">
-                  <div className="relative" ref={assignButtonRef}>
-                    <button
-                      onClick={() => openAssignPortal(bug.id, assignButtonRef)}
-                      disabled={updating === bug.id}
-                      className="btn-primary text-xs py-1.5 px-3"
-                    >
-                      {updating === bug.id
-                        ? "…"
-                        : bug.assignedToName
-                          ? `Assigned: ${bug.assignedToName}`
-                          : "Assign ↓"}
-                    </button>
-                  </div>
+                <td className="px-4 py-3">
+                  <StatusBadge status={bug.status} />
                 </td>
-              )}
-            </tr>
-          ))}
+                <td className="px-4 py-3 text-zinc-500 dark:text-zinc-400 text-xs">
+                  {assignedName || "Unassigned"}
+                </td>
+                <td className="px-4 py-3 text-zinc-400 dark:text-zinc-500 text-xs font-mono whitespace-nowrap">
+                  {bug.createdAt
+                    ? new Date(bug.createdAt).toLocaleDateString()
+                    : "—"}
+                </td>
+
+                {/* Status Update */}
+                {showActions && (
+                  <td className="px-4 py-3">
+                    <div className="relative status-dropdown-container">
+                      <button
+                        onClick={() =>
+                          setOpenStatusDropdown(
+                            openStatusDropdown === bug.id ? null : bug.id,
+                          )
+                        }
+                        disabled={updating === bug.id}
+                        className="btn-secondary text-xs py-1.5 px-3 status-dropdown-btn"
+                      >
+                        {updating === bug.id ? "…" : "Update Status ↓"}
+                      </button>
+
+                      {openStatusDropdown === bug.id && (
+                        <div className="absolute right-0 top-full mt-1 w-40 card shadow-xl z-50 overflow-hidden animate-fade-up">
+                          {STATUS_OPTIONS.map((s) => (
+                            <button
+                              key={s}
+                              onClick={() => handleStatusChange(bug.id, s)}
+                              className={`w-full text-left px-3 py-2 text-xs font-medium hover:bg-zinc-100 dark:hover:bg-zinc-800 transition-colors ${
+                                bug.status === s
+                                  ? "text-brand-500"
+                                  : "text-zinc-700 dark:text-zinc-300"
+                              }`}
+                            >
+                              {s.replace("_", " ")}
+                              {bug.status === s && " ✓"}
+                            </button>
+                          ))}
+                        </div>
+                      )}
+                    </div>
+                  </td>
+                )}
+
+                {/* Assign / Unassign Developer */}
+                {isUserAdmin && (
+                  <td className="px-4 py-3 text-center">
+                    <div className="flex items-center justify-center gap-2 relative assign-dropdown-container">
+                      <button
+                        onClick={(e) => handleOpenAssignPortal(bug, e.currentTarget)}
+                        disabled={updating === bug.id}
+                        className="btn-primary text-xs py-1.5 px-3 assign-dropdown-btn"
+                      >
+                        {updating === bug.id
+                          ? "…"
+                          : assignedName
+                            ? `Assigned: ${assignedName}`
+                            : "Assign ↓"}
+                      </button>
+
+                      <button
+                        onClick={() => handleUnassignDeveloper(bug)}
+                        disabled={updating === bug.id || !isAssigned}
+                        className="btn-secondary text-xs py-1.5 px-3 disabled:opacity-40 disabled:cursor-not-allowed disabled:hover:bg-transparent"
+                        title={!isAssigned ? "No developer assigned" : "Unassign developer"}
+                      >
+                        Unassign
+                      </button>
+                    </div>
+                  </td>
+                )}
+              </tr>
+            );
+          })}
         </tbody>
       </table>
 
@@ -233,28 +318,44 @@ export default function BugTable({
       {openAssignDropdown &&
         createPortal(
           <div
-            className="card shadow-xl z-50 max-h-60 overflow-y-auto animate-fade-up"
+            className="card shadow-xl z-50 max-h-60 overflow-y-auto animate-fade-up assign-dropdown-container"
             style={{
               position: "absolute",
               top: dropdownPosition.top,
               left: dropdownPosition.left,
-              width: 192,
+              width: 200,
             }}
           >
-            {(projectDevelopers[openAssignDropdown] || []).map((dev) => (
-              <button
-                key={dev.id}
-                onClick={() =>
-                  handleAssignDeveloper(openAssignDropdown, dev.id)
-                }
-                className="w-full text-left px-3 py-2 text-xs font-medium hover:bg-zinc-100 dark:hover:bg-zinc-800 transition-colors"
-              >
-                {dev.name}
-              </button>
-            ))}
+            {loadingDevs[openAssignDropdown] ? (
+              <div className="px-3 py-3 text-xs text-zinc-400 text-center">
+                Loading developers…
+              </div>
+            ) : devList.length === 0 ? (
+              <div className="px-3 py-3 text-xs text-zinc-400 text-center">
+                No developers found
+              </div>
+            ) : (
+              devList.map((dev) => (
+                <button
+                  key={dev.id}
+                  onClick={() => handleAssignDeveloper(currentOpenBug, dev)}
+                  className="w-full text-left px-3 py-2 text-xs font-medium hover:bg-zinc-100 dark:hover:bg-zinc-800 transition-colors flex flex-col"
+                >
+                  <span className="text-zinc-800 dark:text-zinc-200 font-semibold">
+                    {dev.name}
+                  </span>
+                  {dev.email && (
+                    <span className="text-[10px] text-zinc-400 truncate">
+                      {dev.email}
+                    </span>
+                  )}
+                </button>
+              ))
+            )}
           </div>,
           document.body,
         )}
     </div>
   );
 }
+

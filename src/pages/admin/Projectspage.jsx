@@ -301,20 +301,21 @@ export default function ProjectsPage() {
   };
 
   return (
-    <div className="p-8 max-w-7xl mx-auto">
+    <div className="p-4 sm:p-6 lg:p-8 max-w-7xl mx-auto">
       {/* Header */}
-      <div className="flex items-center justify-between mb-6 animate-slide-up opacity-0" style={{ animationFillMode: "forwards" }}>
+      <div className="flex flex-col sm:flex-row sm:items-center justify-between gap-4 mb-6 animate-slide-up opacity-0" style={{ animationFillMode: "forwards" }}>
         <div>
-          <h1 className="font-display font-bold text-2xl text-slate-900 dark:text-slate-100">Projects</h1>
-          <p className="text-sm text-slate-500 dark:text-slate-400 mt-1">Manage all projects and their team members</p>
+          <h1 className="font-display font-bold text-xl sm:text-2xl text-slate-900 dark:text-slate-100">Projects</h1>
+          <p className="text-xs sm:text-sm text-slate-500 dark:text-slate-400 mt-1">Manage all projects and their team members</p>
         </div>
         <button
           onClick={() => { setEditTarget(null); setFormModal(true); }}
-          className="flex items-center gap-2 px-4 py-2.5 bg-blue-600 hover:bg-blue-700 text-white text-sm font-semibold rounded-xl transition-colors shadow-sm shadow-blue-600/20"
+          className="self-start sm:self-auto flex items-center gap-2 px-4 py-2.5 bg-blue-600 hover:bg-blue-700 text-white text-sm font-semibold rounded-xl transition-colors shadow-sm shadow-blue-600/20"
         >
           <Plus size={16} /> New Project
         </button>
       </div>
+
 
       {/* Card */}
       <div className="bg-white dark:bg-slate-900 border border-slate-200 dark:border-slate-800 rounded-2xl shadow-sm animate-slide-up opacity-0" style={{ animationDelay: "0.05s", animationFillMode: "forwards" }}>

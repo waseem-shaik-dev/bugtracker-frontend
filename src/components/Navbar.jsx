@@ -1,5 +1,8 @@
+import { useState } from 'react'
 import { Link, useNavigate, useLocation } from 'react-router-dom'
+import { Menu, X } from 'lucide-react'
 import ThemeToggle from './ThemeToggle'
+import { isDemoMode } from '../utils/demoMode'
 
 const roleLinks = {
   ADMIN: [
@@ -27,6 +30,7 @@ const roleBadgeColor = {
 export default function Navbar() {
   const navigate = useNavigate()
   const location = useLocation()
+  const [mobileMenuOpen, setMobileMenuOpen] = useState(false)
   const role = localStorage.getItem('role')
   const name = localStorage.getItem('name') || role
 
@@ -43,10 +47,15 @@ export default function Navbar() {
         {/* Logo */}
         <Link to="/" className="flex items-center gap-2 font-display font-bold text-lg text-zinc-900 dark:text-zinc-100 shrink-0">
           <span className="w-7 h-7 rounded-lg bg-brand-500 flex items-center justify-center text-white text-xs font-black">B</span>
-          BugFlow
+          BugTracker
+          {isDemoMode() && (
+            <span className="px-2 py-0.5 text-[10px] font-bold uppercase tracking-wider rounded-md bg-amber-500/10 text-amber-600 dark:text-amber-400 border border-amber-500/20">
+              Demo Mode
+            </span>
+          )}
         </Link>
 
-        {/* Nav Links */}
+        {/* Desktop Nav Links */}
         <div className="hidden sm:flex items-center gap-1">
           {links.map(({ to, label }) => (
             <Link
@@ -70,11 +79,48 @@ export default function Navbar() {
             <span className={`text-xs font-semibold px-2 py-1 rounded-lg ${roleBadgeColor[role]}`}>{role}</span>
             <span className="text-sm text-zinc-600 dark:text-zinc-400 font-medium">{name}</span>
           </div>
-          <button onClick={handleLogout} className="btn-secondary text-xs py-1.5 px-3">
+          <button onClick={handleLogout} className="hidden sm:inline-flex btn-secondary text-xs py-1.5 px-3">
             Logout
+          </button>
+          <button
+            onClick={() => setMobileMenuOpen(!mobileMenuOpen)}
+            className="sm:hidden p-2 rounded-lg text-zinc-500 hover:bg-zinc-100 dark:hover:bg-zinc-800 transition-colors"
+          >
+            {mobileMenuOpen ? <X size={20} /> : <Menu size={20} />}
           </button>
         </div>
       </div>
+
+      {/* Mobile Menu Panel */}
+      {mobileMenuOpen && (
+        <div className="sm:hidden border-t border-zinc-200 dark:border-zinc-800 bg-white dark:bg-zinc-900 px-4 py-3 space-y-2 animate-fadeIn">
+          {links.map(({ to, label }) => (
+            <Link
+              key={to}
+              to={to}
+              onClick={() => setMobileMenuOpen(false)}
+              className={`block px-3 py-2 rounded-lg text-sm font-medium transition-all ${
+                location.pathname === to
+                  ? 'bg-brand-50 dark:bg-brand-500/10 text-brand-600 dark:text-brand-400'
+                  : 'text-zinc-600 dark:text-zinc-400 hover:bg-zinc-100 dark:hover:bg-zinc-800'
+              }`}
+            >
+              {label}
+            </Link>
+          ))}
+          <div className="pt-2 border-t border-zinc-100 dark:border-zinc-800 flex items-center justify-between">
+            <div className="flex items-center gap-2">
+              <span className={`text-xs font-semibold px-2 py-0.5 rounded-lg ${roleBadgeColor[role]}`}>{role}</span>
+              <span className="text-xs text-zinc-600 dark:text-zinc-400 font-medium truncate max-w-[150px]">{name}</span>
+            </div>
+            <button onClick={handleLogout} className="btn-secondary text-xs py-1 px-3">
+              Logout
+            </button>
+          </div>
+        </div>
+      )}
     </nav>
   )
 }
+
+

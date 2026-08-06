@@ -2,7 +2,9 @@ import { useState } from "react";
 import { Link, useNavigate } from "react-router-dom";
 import api from "../api/axiosConfig";
 import ThemeToggle from "../components/shared/ThemeToggle";
-import { Bug, Eye, EyeOff } from "lucide-react";
+import { Bug, Eye, EyeOff, Sparkles, ArrowLeft } from "lucide-react";
+import { isDemoMode } from "../utils/demoMode";
+import DemoLanding from "../components/demo/DemoLanding";
 
 const ROLE_REDIRECTS = {
   ADMIN: "/admin",
@@ -10,17 +12,22 @@ const ROLE_REDIRECTS = {
   TESTER: "/tester",
 };
 
-
 export default function Login() {
   const navigate = useNavigate();
   const [form, setForm] = useState({ email: "", password: "" });
   const [error, setError] = useState("");
   const [loading, setLoading] = useState(false);
   const [showPassword, setShowPassword] = useState(false);
+  const [showManualLogin, setShowManualLogin] = useState(false);
+
+  const demoActive = isDemoMode();
+
+  if (demoActive && !showManualLogin) {
+    return <DemoLanding onShowManualLogin={() => setShowManualLogin(true)} />;
+  }
 
   const handleChange = (e) =>
     setForm({ ...form, [e.target.name]: e.target.value });
-
 
   const handleSubmit = async (e) => {
     e.preventDefault();
@@ -98,7 +105,15 @@ export default function Login() {
 
       {/* RIGHT PANEL */}
       <div className="flex-1 flex flex-col justify-center items-center px-6 py-12 relative">
-        <div className="absolute top-6 right-6">
+        <div className="absolute top-6 right-6 flex items-center gap-3">
+          {demoActive && showManualLogin && (
+            <button
+              onClick={() => setShowManualLogin(false)}
+              className="text-xs font-medium text-brand-600 dark:text-brand-400 hover:underline flex items-center gap-1"
+            >
+              <ArrowLeft size={14} /> Back to Demo Landing
+            </button>
+          )}
           <ThemeToggle />
         </div>
         <div className="w-full max-w-sm">
@@ -113,7 +128,6 @@ export default function Login() {
           <p className="text-zinc-500 dark:text-zinc-400 text-sm mb-8">
             Sign in to your workspace
           </p>
-
 
           {/* FORM */}
           <form onSubmit={handleSubmit} className="space-y-4">
@@ -181,3 +195,4 @@ export default function Login() {
     </div>
   );
 }
+

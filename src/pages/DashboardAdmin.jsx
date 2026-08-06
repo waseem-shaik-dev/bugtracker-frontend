@@ -71,37 +71,38 @@ export default function DashboardAdmin() {
   ];
 
   return (
-    <div className="p-8 max-w-7xl mx-auto">
+    <div className="p-4 sm:p-6 lg:p-8 max-w-7xl mx-auto">
       {/* Page title */}
-      <div className="mb-8 animate-slide-up opacity-0" style={{ animationFillMode: "forwards" }}>
-        <h1 className="font-display font-bold text-2xl text-slate-900 dark:text-slate-100">Dashboard</h1>
-        <p className="text-sm text-slate-500 dark:text-slate-400 mt-1">Live overview of your bug tracking system</p>
+      <div className="mb-6 sm:mb-8 animate-slide-up opacity-0" style={{ animationFillMode: "forwards" }}>
+        <h1 className="font-display font-bold text-xl sm:text-2xl text-slate-900 dark:text-slate-100">Dashboard</h1>
+        <p className="text-xs sm:text-sm text-slate-500 dark:text-slate-400 mt-1">Live overview of your bug tracking system</p>
       </div>
 
       {/* Top stat cards */}
       {loading ? (
-        <div className="grid grid-cols-2 lg:grid-cols-3 gap-4 mb-6">
+        <div className="grid grid-cols-1 sm:grid-cols-2 lg:grid-cols-3 gap-4 mb-6">
           <CardSkeleton count={3} />
         </div>
       ) : (
-        <div className="grid grid-cols-2 lg:grid-cols-3 gap-4 mb-6">
+        <div className="grid grid-cols-1 sm:grid-cols-2 lg:grid-cols-3 gap-4 mb-6">
           {topCards.map((c) => <StatCard key={c.label} {...c} />)}
         </div>
       )}
 
       {/* Bug status breakdown */}
-      <div className="grid grid-cols-2 lg:grid-cols-3 gap-3 mb-8">
+      <div className="grid grid-cols-1 sm:grid-cols-3 gap-3 mb-8">
         {statusCards.map((c) => (
           <BugStatusCard key={c.label} {...c} />
         ))}
       </div>
+
 
       {/* Recent Bugs */}
       <div
         className="bg-white dark:bg-slate-900 border border-slate-200 dark:border-slate-800 rounded-2xl shadow-sm animate-slide-up opacity-0"
         style={{ animationDelay: "0.45s", animationFillMode: "forwards" }}
       >
-        <div className="px-6 py-4 border-b border-slate-100 dark:border-slate-800 flex items-center gap-2">
+        <div className="px-4 sm:px-6 py-4 border-b border-slate-100 dark:border-slate-800 flex items-center gap-2">
           <TrendingUp size={16} className="text-blue-500" />
           <h2 className="font-display font-semibold text-slate-900 dark:text-slate-100 text-base">Recent Bugs</h2>
           <span className="ml-auto text-xs text-slate-400 font-mono">{recentBugs.length} bugs</span>

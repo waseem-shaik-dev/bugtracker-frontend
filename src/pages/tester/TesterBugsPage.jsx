@@ -330,26 +330,27 @@ export default function TesterBugsPage() {
   );
 
   return (
-    <div className="p-8 max-w-7xl mx-auto">
+    <div className="p-4 sm:p-6 lg:p-8 max-w-7xl mx-auto">
       {/* Header */}
-      <div className="flex items-center justify-between mb-8 animate-slide-up opacity-0" style={{ animationFillMode: "forwards" }}>
+      <div className="flex flex-col sm:flex-row sm:items-center justify-between gap-4 mb-6 sm:mb-8 animate-slide-up opacity-0" style={{ animationFillMode: "forwards" }}>
         <div>
-          <h1 className="font-display font-bold text-2xl text-slate-900 dark:text-slate-100">Bugs Reported by You</h1>
-          <p className="text-sm text-slate-500 dark:text-slate-400 mt-1">Manage and track your reported issues</p>
+          <h1 className="font-display font-bold text-xl sm:text-2xl text-slate-900 dark:text-slate-100">Bugs Reported by You</h1>
+          <p className="text-xs sm:text-sm text-slate-500 dark:text-slate-400 mt-1">Manage and track your reported issues</p>
         </div>
-        <div className="flex items-center gap-4">
+        <div className="flex items-center gap-3 self-start sm:self-auto">
           <span className="text-xs font-mono text-slate-400 bg-slate-100 dark:bg-slate-800 px-3 py-1.5 rounded-lg">
             {filtered.length} bug{filtered.length !== 1 ? "s" : ""}
           </span>
           <button
             onClick={() => setIsReportModalOpen(true)}
-            className="flex items-center gap-2 px-5 py-2.5 bg-blue-600 hover:bg-blue-700 text-white rounded-xl text-[13px] font-semibold transition-all shadow-lg shadow-blue-600/20"
+            className="flex items-center gap-2 px-4 sm:px-5 py-2 sm:py-2.5 bg-blue-600 hover:bg-blue-700 text-white rounded-xl text-xs sm:text-[13px] font-semibold transition-all shadow-lg shadow-blue-600/20"
           >
             <Plus size={16} />
             <span>Report Bug</span>
           </button>
         </div>
       </div>
+
 
       {/* Modern Filter Bar */}
       <div className="bg-white dark:bg-slate-900 border border-slate-200 dark:border-slate-800 rounded-2xl p-4 mb-6 shadow-sm animate-slide-up opacity-0" style={{ animationDelay: "0.05s", animationFillMode: "forwards" }}>

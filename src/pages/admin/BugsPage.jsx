@@ -393,17 +393,18 @@ export default function BugsPage() {
   const activeBackendFilter = filterDev || filterCreator || filterProject;
 
   return (
-    <div className="p-8 max-w-7xl mx-auto">
+    <div className="p-4 sm:p-6 lg:p-8 max-w-7xl mx-auto">
       {/* Header */}
-      <div className="flex items-center justify-between mb-6 animate-slide-up opacity-0" style={{ animationFillMode: "forwards" }}>
+      <div className="flex flex-col sm:flex-row sm:items-center justify-between gap-4 mb-6 animate-slide-up opacity-0" style={{ animationFillMode: "forwards" }}>
         <div>
-          <h1 className="font-display font-bold text-2xl text-slate-900 dark:text-slate-100">Bugs</h1>
-          <p className="text-sm text-slate-500 dark:text-slate-400 mt-1">Track and manage all reported bugs</p>
+          <h1 className="font-display font-bold text-xl sm:text-2xl text-slate-900 dark:text-slate-100">Bugs</h1>
+          <p className="text-xs sm:text-sm text-slate-500 dark:text-slate-400 mt-1">Track and manage all reported bugs</p>
         </div>
-        <span className="text-xs font-mono text-slate-400 bg-slate-100 dark:bg-slate-800 px-3 py-1.5 rounded-lg">
+        <span className="self-start sm:self-auto text-xs font-mono text-slate-400 bg-slate-100 dark:bg-slate-800 px-3 py-1.5 rounded-lg">
           {filtered.length} bug{filtered.length !== 1 ? "s" : ""}
         </span>
       </div>
+
 
       {/* Filter bar */}
       <div className="bg-white dark:bg-slate-900 border border-slate-200 dark:border-slate-800 rounded-2xl px-5 py-4 mb-4 animate-slide-up opacity-0" style={{ animationDelay: "0.05s", animationFillMode: "forwards" }}>
