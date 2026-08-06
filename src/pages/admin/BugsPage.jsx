@@ -1,6 +1,7 @@
 import { useState, useEffect, useMemo } from "react";
 import { Search, Filter, UserCheck, UserX, ArrowUpDown, X, Check, Copy, Pencil, Trash2 } from "lucide-react";
 import toast from "react-hot-toast";
+import api from "../../api/axiosConfig";
 import {
   getDetailedBugs, getDetailedBugsByDeveloper, getDetailedBugsByCreator, getDetailedBugsByProject,
   getDetailedBugById, updateBugStatus, updateBugPriority, assignBug, unassignBug, deleteBug
@@ -113,10 +114,34 @@ const PRIORITIES = ["LOW", "MEDIUM", "HIGH", "CRITICAL"];
 
 
 /* ── Assign Bug Modal ── */
-function AssignModal({ bug, developers, onClose, onAssigned }) {
+function AssignModal({ bug, onClose, onAssigned }) {
   const [selectedId, setSelectedId] = useState("");
   const [search, setSearch] = useState("");
-  const [loading, setLoading] = useState(false);
+  const [submitting, setSubmitting] = useState(false);
+  const [developers, setDevelopers] = useState([]);
+  const [fetchingDevs, setFetchingDevs] = useState(true);
+
+  // Fetch project-specific developers on open
+  useEffect(() => {
+    const projectId = bug.project?.id ?? bug.projectId ?? null;
+    if (!projectId) {
+      toast.error("Bug has no project — cannot load developers");
+      setFetchingDevs(false);
+      return;
+    }
+    const load = async () => {
+      setFetchingDevs(true);
+      try {
+        const res = await api.get(`/users/project/${projectId}`);
+        setDevelopers(Array.isArray(res.data) ? res.data : []);
+      } catch {
+        toast.error("Failed to load project developers");
+      } finally {
+        setFetchingDevs(false);
+      }
+    };
+    load();
+  }, [bug]);
 
   const filtered = useMemo(() =>
     developers.filter((d) =>
@@ -127,7 +152,7 @@ function AssignModal({ bug, developers, onClose, onAssigned }) {
 
   const handle = async () => {
     if (!selectedId) { toast.error("Select a developer"); return; }
-    setLoading(true);
+    setSubmitting(true);
     try {
       await assignBug(bug.id, Number(selectedId));
       onAssigned(bug.id);
@@ -136,7 +161,7 @@ function AssignModal({ bug, developers, onClose, onAssigned }) {
     } catch {
       toast.error("Assignment failed");
     } finally {
-      setLoading(false);
+      setSubmitting(false);
     }
   };
 
@@ -172,8 +197,13 @@ function AssignModal({ bug, developers, onClose, onAssigned }) {
 
         {/* List */}
         <div className="flex-1 overflow-y-auto px-4 py-2 space-y-1 min-h-[300px]">
-          {filtered.length === 0 ? (
-            <div className="py-12 text-center text-slate-400 text-sm">No developers found.</div>
+          {fetchingDevs ? (
+            <div className="py-12 text-center text-slate-400 text-sm flex flex-col items-center gap-3">
+              <span className="inline-block w-5 h-5 rounded-full border-2 border-blue-400 border-t-transparent animate-spin" />
+              Loading developers for this project…
+            </div>
+          ) : filtered.length === 0 ? (
+            <div className="py-12 text-center text-slate-400 text-sm">No developers in this project.</div>
           ) : (
             filtered.map((d) => {
               const active = selectedId === d.id;
@@ -221,10 +251,10 @@ function AssignModal({ bug, developers, onClose, onAssigned }) {
           </button>
           <button 
             onClick={handle} 
-            disabled={loading || !selectedId} 
+            disabled={submitting || !selectedId} 
             className="flex-1 px-4 py-2.5 rounded-xl text-sm font-semibold bg-blue-600 hover:bg-blue-700 text-white transition-colors disabled:opacity-50 shadow-lg shadow-blue-200 dark:shadow-none"
           >
-            {loading ? "Assigning…" : "Assign Developer"}
+            {submitting ? "Assigning…" : "Assign Developer"}
           </button>
         </div>
       </div>
@@ -582,7 +612,7 @@ export default function BugsPage() {
                       </HoverPopover>
                     </td>
                     <td className="px-4 py-3">
-                      <div className="flex items-center gap-1 opacity-0 group-hover:opacity-100 transition-opacity">
+                      <div className="flex items-center gap-1">
                         <button
                           onClick={() => setEditBugTarget(bug)}
                           title="Edit bug"
@@ -600,7 +630,7 @@ export default function BugsPage() {
                         <button
                           onClick={() => setAssignTarget(bug)}
                           title="Assign developer"
-                          className="p-1.5 rounded-lg text-slate-400 hover:text-blue-600 hover:bg-blue-50 dark:hover:bg-blue-900/20 transition-colors"
+                          className="p-1.5 rounded-lg text-slate-500 hover:text-blue-600 hover:bg-blue-50 dark:hover:bg-blue-900/20 transition-colors"
                         >
                           <UserCheck size={14} />
                         </button>
@@ -633,7 +663,6 @@ export default function BugsPage() {
       {assignTarget && (
         <AssignModal
           bug={assignTarget}
-          developers={developers}
           onClose={() => setAssignTarget(null)}
           onAssigned={(id) => refreshBug(id)}
         />
